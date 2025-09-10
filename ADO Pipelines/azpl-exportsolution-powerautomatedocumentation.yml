@@ -1,0 +1,81 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- none
+
+pool:
+  vmImage: windows-latest
+
+variables: 
+  solutionName: 'PowerAutomateForDocumentation'
+
+
+jobs:
+
+- job: export_powerapps_solution
+  displayName: Export Power Apps Solution
+
+  steps:
+  - checkout: self
+    persistCredentials: true
+
+  - script: echo $(System.CollectionUri) $(System.TeamProject) $(Build.Repository.Name) 
+  
+  # - task: PowerPlatformToolInstaller@2
+  #   inputs:
+  #     DefaultVersion: true
+
+  # - task: PowerPlatformExportSolution@2
+  #   inputs:
+  #     authenticationType: 'PowerPlatformSPN'
+  #     PowerPlatformSPN: 'Power Platform Connection'
+  #     SolutionName: $(solutionName)
+  #     SolutionOutputFile: '$(Build.StagingDirectory)/$(solutionName)_managed.zip'
+  #     Managed: true
+  #     AsyncOperation: true
+  #     MaxAsyncWaitTime: '60'
+  
+  # - task: PowerPlatformUnpackSolution@2
+  #   inputs:
+  #     SolutionInputFile: '$(Build.StagingDirectory)/$(solutionName)_managed.zip'
+  #     SolutionTargetFolder: '$(Build.SourcesDirectory)/$(solutionName)'
+  #     SolutionType: 'Managed'
+
+  # - task: PowerShell@2
+  #   inputs:
+  #     targetType: 'inline'
+  #     script: |
+  #       Write-Host "================1. Show contents in Build.SourcesDirectory: ================"
+  #       tree $(Build.SourcesDirectory) /F /A
+        
+  #       Write-Host "================2. Push the exported solutions to source repo: ================"
+  #       git config --global user.email “$(Build.RequestedForEmail)”
+  #       git config --global user.name "$(Build.RequestedFor)"
+  #       git checkout -b $(Build.SourceBranchName)
+  #       git add .
+  #       git commit -m "Solution exported by $(Build.DefinitionName) in build $(Build.BuildId)"
+  #       git push origin $(Build.SourceBranchName)
+
+  - task: DotNetCoreCLI@2
+    displayName: DotNet Restore
+    inputs:
+      command: 'restore'
+      projects: '$(System.DefaultWorkingDirectory)/src/twoday.ai/twoday.ai.powerflowsdoc/twoday.ai.powerflowsdoc.csproj'
+      feedsToUse: 'select'
+
+  - task: DotNetCoreCLI@2
+    displayName: DotNet Build
+    inputs:
+      command: 'build'
+      projects: '$(System.DefaultWorkingDirectory)/src/twoday.ai/twoday.ai.powerflowsdoc/twoday.ai.powerflowsdoc.csproj'
+
+  - task: DotNetCoreCLI@2
+    displayName: DotNet run app
+    inputs:
+      command: 'run'
+      arguments: '"" "$(System.CollectionUri)" "$(System.TeamProject)" "$(Build.Repository.Name)"'
+      configuration: 'Release' 
+      projects: '$(System.DefaultWorkingDirectory)/src/twoday.ai/twoday.ai.powerflowsdoc/twoday.ai.powerflowsdoc.csproj'
